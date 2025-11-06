@@ -9,12 +9,9 @@ const LC_HANDLE = USER_HANDLE;
 const CC_HANDLE = USER_HANDLE;
 // ------------------------------------------
 
-// --- CRITICAL INTEGRATION POINT ---
-// 🛑 ACTION REQUIRED: Replace this URL with the live endpoint of a community-built CP aggregator API
-// (e.g., a service you found on GitHub that scrapes CodeChef/LeetCode).
-const BASE_AGGREGATOR_URL = "https://your-live-cp-aggregator.com/api/v1"; 
+const CODECHEF_API_BASE_URL = "https://codechef-api.vercel.app/handle"; // Verified from search
+const LEETCODE_API_BASE_URL = "https://alfa-leetcode-api.onrender.com"; // Verified from search
 // ----------------------------------
-
 // --- 1. CODEFORCES FETCHER (Reliable Official API) ---
 const fetchCodeforcesData = async () => {
   const infoUrl = `https://codeforces.com/api/user.info?handles=${CF_HANDLE}`;
@@ -48,44 +45,50 @@ const fetchCodeforcesData = async () => {
   }
 };
 
-// --- 2. AGGREGATOR FETCHER (Placeholder/Mock Data for CC/LC) ---
+
 const fetchAggregatedData = async (handle, platform) => {
-    // ⚠️ CRITICAL: The data you see here is the MOCK DATA.
-    const url = `${BASE_AGGREGATOR_URL}/profile?platform=${platform}&handle=${handle}`;
     
     try {
-        // 🚨 UNCOMMENT AND USE THIS LINE WITH A VALID URL:
-        // const response = await axios.get(url); 
-        // const data = response.data; 
-
         if (platform === 'LC') {
-            // Mapping fields based on the response of your real API:
+            // LeetCode: Fetches the total solved count and difficulty breakdown
+            const solvedUrl = `${LEETCODE_API_BASE_URL}/${handle}/solved`;
+            const response = await axios.get(solvedUrl);
+            const data = response.data;
+        
             return {
-                totalSolved: 1200, // MOCK VALUE - Change to data.totalSolved
-                easy: 400, 
-                medium: 600, 
-                hard: 200,
-                peakRating: '2000+'
+                // Mapped to the specific fields from the 'alfa-leetcode-api'
+                totalSolved: data.solvedAll || 'N/A', 
+                easy: data.easySolved || 'N/A',
+                medium: data.mediumSolved || 'N/A',
+                hard: data.hardSolved || 'N/A',
+                peakRating: 'N/A' // Contest rating is often a separate API call on this service
             };
-        } else if (platform === 'CC') {
-            // Mapping fields based on the response of your real API:
+        }
+        
+        else if (platform === 'CC') {
+            // CodeChef: Fetches main profile stats
+            const ccUrl = `${CODECHEF_API_BASE_URL}/${handle}`;
+            const response = await axios.get(ccUrl);
+            const data = response.data; 
+            
+            // This mapping assumes the API response contains data.rating, data.maxRating, and data.stars.
+            // You may need to inspect the network response and slightly adjust 'data.rating' if the key is different.
             return {
-                currentRating: 1950, // MOCK VALUE - Change to data.currentRating
-                starRating: '4-Star',
-                peakRating: 2100,
-                history: [ 
-                    // MOCK HISTORY (Add real history array from data.history)
-                    { date: '2024-01-01', rating: 1700, platform: 'CC' },
-                    { date: '2024-06-01', rating: 1950, platform: 'CC' }
-                ]
+                currentRating: data.rating || 'N/A', 
+                starRating: data.stars || 'N/A',
+                peakRating: data.maxRating || 'N/A',
+                // This specific API might not return a clean history array; if it fails, try the competeapi service.
+                history: data.rating_changes || data.history || [] 
             };
         }
     } catch (error) {
-        console.error(`Error fetching ${platform} data. Check BASE_AGGREGATOR_URL and URL structure:`, error.message);
+        console.error(`Error fetching ${platform} data. Check the specific API URL:`, error.message);
         return platform === 'LC' 
-            ? { totalSolved: 'API Fail', hard: 'N/A', easy: 'N/A', medium: 'N/A', peakRating: 'N/A' } 
-            : { currentRating: 'API Fail', peakRating: 'N/A', starRating: 'N/A', history: [] };
+            ? { totalSolved: 'API Error', hard: 'N/A', easy: 'N/A', medium: 'N/A', peakRating: 'N/A' } 
+            : { currentRating: 'API Error', peakRating: 'N/A', starRating: 'N/A', history: [] };
     }
+    // Return empty fallback if platform is unrecognized
+    return {};
 };
 
 const UnifiedDashboard = () => {
