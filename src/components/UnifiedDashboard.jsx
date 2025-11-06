@@ -16,27 +16,45 @@ const CF_HANDLE = USER_HANDLE;
 const LC_HANDLE = USER_HANDLE;
 const CC_HANDLE = USER_HANDLE;
 
+// inside UnifiedDashboard.jsx
 const useChartHeight = () => {
     const compute = () => {
-      const w = typeof window !== "undefined" ? window.innerWidth : 1200;
-      if (w >= 1280) return 420;   // large desktop
-      if (w >= 992)  return 380;   // desktop
-      if (w >= 768)  return 320;   // tablet
-      return 280;                  // mobile
+      const w = window.innerWidth || 1200;
+      if (w >= 1600) return 480;  // large screens
+      if (w >= 1280) return 420;  // desktop
+      if (w >= 992)  return 360;  // laptop
+      if (w >= 768)  return 300;  // tablet
+      return 260;                 // mobile
     };
-    const [h, setH] = useState(compute());
+    const [height, setHeight] = useState(compute);
+  
     useEffect(() => {
-      const onResize = () => setH(compute());
-      window.addEventListener("resize", onResize);
-      return () => window.removeEventListener("resize", onResize);
+      const handleResize = () => {
+        requestAnimationFrame(() => setHeight(compute()));
+      };
+      window.addEventListener("resize", handleResize);
+      return () => window.removeEventListener("resize", handleResize);
     }, []);
-    return h;
+  
+    return height;
   };
+  // forces a chart redraw on resize and mount
+const useForceUpdateOnResize = () => {
+    const [, setTick] = useState(0);
+    useEffect(() => {
+      const handle = () => setTick((t) => t + 1);
+      window.addEventListener("resize", handle);
+      // also trigger once after load to fix first render
+      setTimeout(handle, 300);
+      return () => window.removeEventListener("resize", handle);
+    }, []);
+  };
+  
   
 const UnifiedDashboard = () => {
   const { baseStyles, cardBase } = useThemedStyles();
   const chartHeight = useChartHeight();
-
+  useForceUpdateOnResize();   
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -104,8 +122,16 @@ const UnifiedDashboard = () => {
       </div>
 
       <h2 style={baseStyles.sectionTitle}>📊 Consolidated Rating Trend </h2>
-      <div style={{ ...baseStyles.chartWrap(chartHeight), width: "100%", minWidth: 0 }}>
-        <ResponsiveContainer width="100%" height="100%">
+      <div
+  style={{
+    width: "100%",
+    maxWidth: "1280px",
+    margin: "0 auto",
+    display: "block",
+  }}
+>
+  <ResponsiveContainer width="100%" height={chartHeight}>
+
           <LineChart data={data.allHistory} margin={{ top: 5, right: 20, left: 12, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={cardBase.gridStroke} />
             <XAxis dataKey="date" tick={cardBase.axis} tickFormatter={xTickFormatter} />

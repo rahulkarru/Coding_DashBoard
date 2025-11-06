@@ -47,14 +47,21 @@ const useThemedStyles = () => {
   const baseStyles = useMemo(
     () => ({
       page: {
+        width: "100vw",                 // full viewport width
+        maxWidth: "100vw",              // no artificial cap
+        overflowX: "hidden",            // hide scrollbars
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "flex-start",
         padding: "28px clamp(12px, 5vw, 32px)",
-        maxWidth: "1200px",
-        margin: "0 auto",
         fontFamily: "Inter, ui-sans-serif, system-ui, Segoe UI, Roboto, Arial",
         color: theme.text,
         background: theme.heroGrad,
-        minHeight: "100dvh",
-      },
+        minHeight: "100vh",
+        boxSizing: "border-box",
+      }
+,      
       headerCard: {
         padding: "18px clamp(12px, 4vw, 24px)",
         borderRadius: 16,
@@ -73,10 +80,16 @@ const useThemedStyles = () => {
       hr: { margin: "22px 0", border: "none", height: 1, background: theme.cardBorder },
       gridCards: {
         display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-        gap: "18px",
-        marginBottom: 24,
-      },
+        gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", // <-- wider min
+        gap: "24px",
+        justifyContent: "center",
+        alignItems: "stretch",
+        width: "100%",
+        maxWidth: "1280px",      // limits row length nicely
+        margin: "0 auto 40px",
+        boxSizing: "border-box",
+      }
+,      
       sectionTitle: { margin: "18px 0 10px", fontSize: "clamp(18px, 1.8vw, 22px)" },
       chartWrap: (h) => ({ width: "100%", height: h }),
       loading: { textAlign: "center", padding: 50, color: theme.subtext },
@@ -134,18 +147,23 @@ const useThemedStyles = () => {
       boxShadow: `${theme.shadow}, ${pt.glow}`,
       transition: "transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease",
       overflow: "hidden",
+      minHeight: 160,     // gives the logo/headline room
+      minWidth: 0, 
     }),
     wrapperHover: { transform: "translateY(-4px)" },
     logoBg: {
       position: "absolute",
-      right: -18,
-      top: -18,
-      height: "160%",
-      opacity: 0.065,
+      // right: -20,
+      top: 20,
+      left:5,
+      width: "clamp(140px, 46%, 240px)", // stays inside the card
+      height: "auto",
+      opacity: 0.185,                     // faint but readable
       pointerEvents: "none",
       userSelect: "none",
-      transform: "rotate(-12deg)",
+      transform: "rotate(-77deg)",
       filter: "grayscale(100%)",
+      objectFit: "contain",
     },
     name: { margin: "0 0 8px 0", color: theme.subtext, fontWeight: 700, letterSpacing: ".2px" },
     big: { fontSize: "clamp(28px, 4.8vw, 40px)", margin: 0, color: theme.text, fontWeight: 800 },

@@ -2,5 +2,10 @@
 import UnifiedDashboard from "./components/UnifiedDashboard";
 
 export default function App() {
-  return <UnifiedDashboard />;
+  return (
+    <div style={{ width: "100vw", overflowX: "hidden" }}>
+      <UnifiedDashboard />
+    </div>
+  );
 }
+
