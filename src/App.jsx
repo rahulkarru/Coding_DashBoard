@@ -1,11 +1,6 @@
-import UnifiedDashboard from './components/UnifiedDashboard';
+// src/App.jsx
+import UnifiedDashboard from "./components/UnifiedDashboard";
 
-function App() {
-  return (
-    <div className="App">
-      <UnifiedDashboard />
-    </div>
-  );
+export default function App() {
+  return <UnifiedDashboard />;
 }
-
-export default App;
