@@ -8,5 +8,5 @@ export default defineConfig({
   // 🛑 CRITICAL FIX: Base URL for GitHub Pages
   // Your GitHub Pages URL is typically: https://<username>.github.io/<repo-name>/
   // Assuming your repository name is 'unified-cp-dashboard'
-  base: '/unified-cp-dashboard/', 
+  base: '/Coding_DashBoard/', 
 });

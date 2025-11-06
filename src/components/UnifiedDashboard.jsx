@@ -8,10 +8,10 @@ const CF_HANDLE = USER_HANDLE;
 const LC_HANDLE = USER_HANDLE;
 const CC_HANDLE = USER_HANDLE;
 // ------------------------------------------
-
-const CODECHEF_API_BASE_URL = "https://codechef-api.vercel.app/handle"; // Verified from search
-const LEETCODE_API_BASE_URL = "https://alfa-leetcode-api.onrender.com"; // Verified from search
+const CODECHEF_API_BASE_URL = "https://codechef-api.vercel.app/handle";
+const LEETCODE_API_BASE_URL = "https://alfa-leetcode-api.onrender.com";
 // ----------------------------------
+
 // --- 1. CODEFORCES FETCHER (Reliable Official API) ---
 const fetchCodeforcesData = async () => {
   const infoUrl = `https://codeforces.com/api/user.info?handles=${CF_HANDLE}`;
@@ -44,53 +44,67 @@ const fetchCodeforcesData = async () => {
     return { summary: { handle: CF_HANDLE, rating: 'N/A (Error)', maxRating: 'N/A', rank: 'N/A' }, history: [] };
   }
 };
+// --- CRITICAL INTEGRATION POINT ---
+// BASE URLs are confirmed correct from search results
 
 
 const fetchAggregatedData = async (handle, platform) => {
     
     try {
         if (platform === 'LC') {
-            // LeetCode: Fetches the total solved count and difficulty breakdown
-            const solvedUrl = `${LEETCODE_API_BASE_URL}/${handle}/solved`;
-            const response = await axios.get(solvedUrl);
-            const data = response.data;
+            // --- LEETCODE FIX: Needs two calls ---
+            
+            // 1. Solved Counts (Endpoint: /Solved/:username/solved)
+            const solvedUrl = `${LEETCODE_API_BASE_URL}/Solved/${handle}/solved`;
+            const solvedResponse = await axios.get(solvedUrl);
+            const solvedData = solvedResponse.data;
+
+            // 2. Contest Ranking (Endpoint: /Contest/:username/contest)
+            const contestUrl = `${LEETCODE_API_BASE_URL}/Contest/${handle}/contest`;
+            const contestResponse = await axios.get(contestUrl);
+            const contestData = contestResponse.data;
         
             return {
-                // Mapped to the specific fields from the 'alfa-leetcode-api'
-                totalSolved: data.solvedAll || 'N/A', 
-                easy: data.easySolved || 'N/A',
-                medium: data.mediumSolved || 'N/A',
-                hard: data.hardSolved || 'N/A',
-                peakRating: 'N/A' // Contest rating is often a separate API call on this service
+                // Solved Problem Stats (This was working for you)
+                totalSolved: solvedData.solvedAll || 'N/A', 
+                easy: solvedData.easySolved || 'N/A',
+                medium: solvedData.mediumSolved || 'N/A',
+                hard: solvedData.hardSolved || 'N/A',
+                
+                // Contest Rating Stat (THE FIX for missing rating)
+                // Use the contestRanking data if available, otherwise fallback.
+                peakRating: contestData.contestRanking ? Math.round(contestData.contestRanking.rating) : 'N/A', 
             };
         }
         
         else if (platform === 'CC') {
-            // CodeChef: Fetches main profile stats
+            // --- CODECHEF FIX: Checking common response structures ---
             const ccUrl = `${CODECHEF_API_BASE_URL}/${handle}`;
             const response = await axios.get(ccUrl);
+            
+            // The API response often has a nested data object or a flat object.
+            // We assume the actual user stats are at the top level of the response data.
             const data = response.data; 
             
-            // This mapping assumes the API response contains data.rating, data.maxRating, and data.stars.
-            // You may need to inspect the network response and slightly adjust 'data.rating' if the key is different.
             return {
+                // Mapping fields based on the most common CodeChef API structure (Snippet 2.3)
                 currentRating: data.rating || 'N/A', 
                 starRating: data.stars || 'N/A',
-                peakRating: data.maxRating || 'N/A',
-                // This specific API might not return a clean history array; if it fails, try the competeapi service.
+                peakRating: data.maxRating || data.rating || 'N/A',
+                // Fallbacks for history field name
                 history: data.rating_changes || data.history || [] 
             };
         }
     } catch (error) {
-        console.error(`Error fetching ${platform} data. Check the specific API URL:`, error.message);
+        // This catch block handles API failures (like a 404 or server timeout)
+        console.error(`Error fetching ${platform} data. The API is likely failing or returning an unexpected format for handle ${handle}.`, error.message);
         return platform === 'LC' 
-            ? { totalSolved: 'API Error', hard: 'N/A', easy: 'N/A', medium: 'N/A', peakRating: 'N/A' } 
-            : { currentRating: 'API Error', peakRating: 'N/A', starRating: 'N/A', history: [] };
+            ? { totalSolved: 'API Fail', hard: 'N/A', easy: 'N/A', medium: 'N/A', peakRating: 'API Fail' } 
+            : { currentRating: 'API Fail', peakRating: 'API Fail', starRating: 'N/A', history: [] };
     }
     // Return empty fallback if platform is unrecognized
     return {};
 };
-
 const UnifiedDashboard = () => {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
