@@ -1,7 +1,7 @@
 import React from "react";
 import BasePlatformCard from "./BasePlatformCard";
 
-const CodeforcesCard = ({ summary, link }) => {
+const CodeforcesCard = ({ summary, link,contestsAttended }) => {
   const rankChip = summary.rank && summary.rank !== "N/A" ? summary.rank : null;
   const maxChip = summary.maxRank ? `Max ${summary.maxRank}` : null;
   const chips = [rankChip, maxChip].filter(Boolean);
@@ -12,9 +12,9 @@ const CodeforcesCard = ({ summary, link }) => {
       title="Codeforces"
       big={summary.rating}
       mid={summary.rank}
-      sub={`Peak: ${summary.maxRating}`}
+      sub={`Peak: ${summary.maxRating} | Contests: ${contestsAttended || "N/A"}`}
       link={link}
-      chips={chips}
+     // chips={chips}
     />
   );
 };

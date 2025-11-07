@@ -24,8 +24,9 @@ const usePrefersDark = () => {
   return isDark;
 };
 
-const useThemedStyles = () => {
-  const isDark = usePrefersDark();
+const useThemedStyles = (manualTheme) => {  // Accept manual theme prop
+  const systemIsDark = usePrefersDark();
+  const isDark = manualTheme ? manualTheme === "dark" : systemIsDark;  // Use manual if provided
 
   const theme = useMemo(
     () => ({
@@ -47,9 +48,9 @@ const useThemedStyles = () => {
   const baseStyles = useMemo(
     () => ({
       page: {
-        width: "100vw",                 // full viewport width
-        maxWidth: "100vw",              // no artificial cap
-        overflowX: "hidden",            // hide scrollbars
+        width: "100vw",
+        maxWidth: "100vw",
+        overflowX: "hidden",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -60,8 +61,7 @@ const useThemedStyles = () => {
         background: theme.heroGrad,
         minHeight: "100vh",
         boxSizing: "border-box",
-      }
-,      
+      },
       headerCard: {
         padding: "18px clamp(12px, 4vw, 24px)",
         borderRadius: 16,
@@ -80,16 +80,15 @@ const useThemedStyles = () => {
       hr: { margin: "22px 0", border: "none", height: 1, background: theme.cardBorder },
       gridCards: {
         display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", // <-- wider min
+        gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", // Keep for responsiveness, but we'll override in UnifiedDashboard
         gap: "24px",
         justifyContent: "center",
         alignItems: "stretch",
         width: "100%",
-        maxWidth: "1280px",      // limits row length nicely
+        maxWidth: "1280px",
         margin: "0 auto 40px",
         boxSizing: "border-box",
-      }
-,      
+      },
       sectionTitle: { margin: "18px 0 10px", fontSize: "clamp(18px, 1.8vw, 22px)" },
       chartWrap: (h) => ({ width: "100%", height: h }),
       loading: { textAlign: "center", padding: 50, color: theme.subtext },
@@ -147,18 +146,17 @@ const useThemedStyles = () => {
       boxShadow: `${theme.shadow}, ${pt.glow}`,
       transition: "transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease",
       overflow: "hidden",
-      minHeight: 160,     // gives the logo/headline room
-      minWidth: 0, 
+      minHeight: 160,
+      minWidth: 0,
     }),
     wrapperHover: { transform: "translateY(-4px)" },
     logoBg: {
       position: "absolute",
-      // right: -20,
       top: 20,
-      left:5,
-      width: "clamp(140px, 46%, 240px)", // stays inside the card
+      left: 5,
+      width: "clamp(140px, 46%, 240px)",
       height: "auto",
-      opacity: 0.185,                     // faint but readable
+      opacity: 0.185,
       pointerEvents: "none",
       userSelect: "none",
       transform: "rotate(-77deg)",

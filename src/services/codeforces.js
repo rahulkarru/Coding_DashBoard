@@ -17,12 +17,17 @@ export const fetchCodeforcesData = async (handle) => {
       contest: entry.contestName,
     }));
 
-    return { summary: infoRes.data.result[0], history };
+    return { 
+      summary: infoRes.data.result[0], 
+      history,
+      contestsAttended: history.length  // New field: number of contests attended
+    };
   } catch (error) {
     console.error("Codeforces Fetch Error:", error.message);
     return {
       summary: { handle, rating: "N/A (Error)", maxRating: "N/A", rank: "N/A" },
       history: [],
+      contestsAttended: 0  // Default to 0 on error
     };
   }
 };

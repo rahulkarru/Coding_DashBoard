@@ -1,28 +1,35 @@
+// src/services/codechef.js
 import axios from "axios";
 
 const CODECHEF_API_BASE_URL = "https://codechef-api.vercel.app/handle";
 
 export const fetchCodeChef = async (handle) => {
   try {
-    const ccUrl = `${CODECHEF_API_BASE_URL}/${handle}`;
-    const response = await axios.get(ccUrl);
-    const data = response.data || {};
+    const { data } = await axios.get(`${CODECHEF_API_BASE_URL}/${handle}`);
 
-    const history = (data.rating_changes || data.history || []).map((e) => ({
-      date: e.date || e.contest?.end_date || "",
-      rating: e.rating || e.newRating || e.new_rating || 0,
-      platform: "CC",
-      contest: e.name || e.contest?.name || "Contest",
-    }));
+    const currentRating = data.rating ?? "N/A";
+    const peakRating = data.maxRating ?? "N/A";
+    const contests = data.contests ?? data.rating_changes?.length ?? "N/A";
+
+    // Derive division
+    let division = "N/A";
+    if (currentRating >= 2000) division = "Div 1";
+    else if (currentRating >= 1600) division = "Div 2";
+    else division = "Div 3";
 
     return {
-      currentRating: data.rating ?? "N/A",
-      starRating: data.stars ?? "N/A",
-      peakRating: data.maxRating ?? data.rating ?? "N/A",
-      history,
+      division,
+      contestsAttended: contests,
+      currentRating,
+      peakRating,
     };
-  } catch (err) {
-    console.error(`CodeChef API error for ${handle}:`, err.message);
-    return { currentRating: "API Fail", peakRating: "API Fail", starRating: "N/A", history: [] };
+  } catch (error) {
+    console.error("❌ CodeChef Fetch Error:", error.message);
+    return {
+      division: "API Fail",
+      contestsAttended: "N/A",
+      currentRating: "N/A",
+      peakRating: "N/A",
+    };
   }
 };
