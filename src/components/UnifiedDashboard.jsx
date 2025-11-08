@@ -43,6 +43,14 @@ const useChartHeight = () => {
   return height;
 };
 
+// ✅ Normalize date helper (ensures consistent YYYY-MM-DD format)
+const normalizeDate = (dateString) => {
+  if (!dateString) return null;
+  const d = new Date(dateString);
+  if (isNaN(d)) return null;
+  return d.toISOString().split("T")[0];
+};
+
 // Helper: Fill gaps in history for a platform
 const fillGaps = (history, allDates) => {
   if (!history.length) return [];
@@ -63,8 +71,8 @@ const fillGaps = (history, allDates) => {
 };
 
 const UnifiedDashboard = () => {
-  const [theme, setTheme] = useState("light"); // Theme state
-  const { baseStyles, cardBase } = useThemedStyles(theme); // Pass theme
+  const [theme, setTheme] = useState("light");
+  const { baseStyles, cardBase } = useThemedStyles(theme);
   const chartHeight = useChartHeight();
 
   const [data, setData] = useState(null);
@@ -80,35 +88,74 @@ const UnifiedDashboard = () => {
           fetchCodeChef(CC_HANDLE),
         ]);
 
-        const lcHistory = lcData.history || [];
+        // Normalize all history dates
+        const cfHistory = (cfData.history || []).map((h) => ({
+          ...h,
+          date: normalizeDate(h.date),
+        }));
+        const lcHistory = (lcData.history || []).map((h) => ({
+          ...h,
+          date: normalizeDate(h.date),
+        }));
+        const ccHistory = (ccData.history || []).map((h) => ({
+          ...h,
+          date: normalizeDate(h.date),
+        }));
 
-        // Get all unique dates up to today (no future dates)
-        const today = new Date().toISOString().split('T')[0];
-        const allDates = [
-          ...(cfData.history || []),
-          ...(ccData.history || []),
-          ...lcHistory,
-        ]
-          .map((d) => d.date)
-          .filter((date) => date <= today) // Only past/current dates
-          .filter((date, index, arr) => arr.indexOf(date) === index) // Unique
-          .sort((a, b) => new Date(a) - new Date(b));
+       
+const now = new Date();
+const oneYearAgo = new Date();
+oneYearAgo.setFullYear(now.getFullYear() - 1);
 
-        // Fill gaps for each platform
-        const cfFilled = fillGaps((cfData.history || []).map(h => ({ ...h, platform: "CF" })), allDates);
-        const ccFilled = fillGaps((ccData.history || []).map(h => ({ ...h, platform: "CC" })), allDates);
-        const lcFilled = fillGaps(lcHistory.map(h => ({ ...h, platform: "LC" })), allDates);
+const allDates = [
+  ...cfHistory.map((d) => d.date),
+  ...lcHistory.map((d) => d.date),
+  ...ccHistory.map((d) => d.date),
+]
+  .filter(Boolean)
+  .map((date) => normalizeDate(date))
+  .filter((date) => {
+    const d = new Date(date);
+    return d >= oneYearAgo && d <= now;
+  })
+  .filter((date, idx, arr) => arr.indexOf(date) === idx)
+  .sort((a, b) => new Date(a) - new Date(b));
 
-        // Combine filled histories
-        const combinedHistory = [...cfFilled, ...ccFilled, ...lcFilled].sort(
-          (a, b) => new Date(a.date) - new Date(b.date)
+
+        // Fill missing points
+        const cfFilled = fillGaps(
+          cfHistory.map((h) => ({ ...h, platform: "CF" })),
+          allDates
         );
+        const lcFilled = fillGaps(
+          lcHistory.map((h) => ({ ...h, platform: "LC" })),
+          allDates
+        );
+        const ccFilled = fillGaps(
+          ccHistory.map((h) => ({ ...h, platform: "CC" })),
+          allDates
+        );
+
+        // ✅ Unified structure for Recharts
+        const unifiedHistory = allDates.map((date) => {
+          const cf = cfFilled.find((h) => h.date === date);
+          const lc = lcFilled.find((h) => h.date === date);
+          const cc = ccFilled.find((h) => h.date === date);
+          return {
+            date,
+            CF: cf ? cf.rating : null,
+            LC: lc ? lc.rating : null,
+            CC: cc ? cc.rating : null,
+          };
+        });
+
+        console.log("✅ Unified sample:", unifiedHistory.slice(0, 5));
 
         setData({
           cf: cfData,
           lc: lcData,
           cc: ccData,
-          allHistory: combinedHistory,
+          unifiedHistory,
         });
       } catch (err) {
         console.error("Failed to load dashboard data:", err);
@@ -120,21 +167,19 @@ const UnifiedDashboard = () => {
 
     loadAllData();
   }, []);
-
-  const toggleTheme = () => setTheme(theme === "light" ? "dark" : "light");
-
-  if (loading)
-    return <div style={baseStyles.loading}>Loading Unified CP Data…</div>;
-  if (!data)
-    return <div style={baseStyles.error}>Error loading dashboard data.</div>;
-
-  console.log("✅ Codeforces:", data.cf);
-  console.log("✅ CodeChef:", data.cc);
-  console.log("✅ LeetCode:", data.lc);
+  const toggleTheme = () => {
+    const newTheme = theme === "light" ? "dark" : "light";
+    setTheme(newTheme);
+    document.documentElement.setAttribute("data-theme", newTheme);
+  };
+  
+  if (loading) return <div style={baseStyles.loading}>Loading Unified CP Data…</div>;
+  if (!data) return <div style={baseStyles.error}>Error loading dashboard data.</div>;
 
   return (
     <div style={baseStyles.page}>
-      {/* Small Theme Toggle Button at Top Right Edge */}
+      {/* Theme Toggle */}
+      {/* 
       <button
         onClick={toggleTheme}
         style={{
@@ -148,12 +193,12 @@ const UnifiedDashboard = () => {
           borderRadius: "4px",
           cursor: "pointer",
           fontSize: "12px",
-          zIndex: 1000, // Ensure it's on top
+          zIndex: 1000,
         }}
       >
         {theme === "light" ? "🌙" : "☀️"}
       </button>
-
+*/}
       {/* Header */}
       <div style={baseStyles.headerCard}>
         <h1 style={baseStyles.title}>
@@ -163,7 +208,7 @@ const UnifiedDashboard = () => {
 
       <hr style={baseStyles.hr} />
 
-      {/* Cards Section */}
+      {/* Cards */}
       <div style={baseStyles.gridCards}>
         <CodeforcesCard
           summary={data.cf.summary}
@@ -179,23 +224,18 @@ const UnifiedDashboard = () => {
           currentRating={data.cc.currentRating}
           starRating={data.cc.starRating}
           peakRating={data.cc.peakRating}
+          contestsAttended={data.cc.contestsAttended} 
           link={`https://www.codechef.com/users/${CC_HANDLE}`}
         />
       </div>
 
       <h2 style={baseStyles.sectionTitle}>📊 Rating Comparison Over Time</h2>
 
-      {/* Graph */}
-      <div
-        style={{
-          width: "100%",
-          maxWidth: "1280px",
-          margin: "0 auto",
-        }}
-      >
+      {/* Unified Chart */}
+      <div style={{ width: "100%", maxWidth: "1280px", margin: "0 auto" }}>
         <ResponsiveContainer width="100%" height={chartHeight}>
           <LineChart
-            data={data.allHistory}
+            data={data.unifiedHistory}
             margin={{ top: 5, right: 20, left: 12, bottom: 5 }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke={cardBase.gridStroke} />
@@ -206,33 +246,30 @@ const UnifiedDashboard = () => {
 
             <Line
               type="monotone"
-              dataKey="rating"
+              dataKey="CF"
               name="Codeforces"
-              data={data.allHistory.filter((d) => d.platform === "CF")}
               stroke="#179cde"
               strokeWidth={2.2}
               dot={false}
-              connectNulls={false}
+              connectNulls
             />
             <Line
               type="monotone"
-              dataKey="rating"
+              dataKey="CC"
               name="CodeChef"
-              data={data.allHistory.filter((d) => d.platform === "CC")}
               stroke="#3d4451"
               strokeWidth={2.2}
               dot={false}
-              connectNulls={false}
+              connectNulls
             />
             <Line
               type="monotone"
-              dataKey="rating"
+              dataKey="LC"
               name="LeetCode"
-              data={data.allHistory.filter((d) => d.platform === "LC")}
               stroke="#f89f1b"
               strokeWidth={2.2}
               dot={false}
-              connectNulls={false}
+              connectNulls
             />
           </LineChart>
         </ResponsiveContainer>
